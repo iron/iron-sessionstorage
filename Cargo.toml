@@ -1,0 +1,11 @@
+[package]
+name = "iron-sessionstorage"
+version = "0.1.0"
+authors = ["Markus Unterwaditzer <markus@unterwaditzer.net>"]
+
+[dependencies]
+iron = "0.4"
+
+[dependencies.cookie]
+version = "0.2.2"
+features = ["secure"]
