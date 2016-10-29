@@ -1,3 +1,11 @@
+/// Use signed cookies as session storage. See
+/// http://lucumr.pocoo.org/2013/11/17/my-favorite-database/ for an introduction to this concept.
+///
+/// You need to pass a random value to the constructor of `SignedCookieBackend`. When this value is
+/// changed, all session data is lost. Never publish this value, everybody who has it can forge
+/// sessions.
+///
+/// Note that whatever you write into your session is visible by the user (but not modifiable).
 use std::sync::Arc;
 use std::collections::HashMap;
 
