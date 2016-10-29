@@ -3,14 +3,35 @@ extern crate iron_sessionstorage;
 
 use iron::prelude::*;
 
-use iron_sessionstorage::{RequestExt,SessionStorage};
+use iron_sessionstorage::traits::*;
+use iron_sessionstorage::SessionStorage;
 use iron_sessionstorage::backends::SignedCookieBackend;
 
+struct Aaa(String);
+
+impl iron_sessionstorage::Value for Aaa {
+    fn get_key() -> &'static str { "foo" }
+    fn into_raw(self) -> String { self.0 }
+    fn from_raw(value: &str) -> Option<Self> {
+        // Maybe validate that only 'a's are in the string
+        Some(Aaa(value.to_owned()))
+    }
+}
+
 fn handler(req: &mut Request) -> IronResult<Response> {
-    let value = req.session().get("foo").unwrap_or("").to_owned();
-    req.session().set("foo", format!("{}a", value));
-    Ok(Response::with(format!("Reload this page to add an a: {}\n\n \
-                              Clear cookies to reset.", value)))
+    let mut value = match req.session().get::<Aaa>() {
+        Some(aaa) => aaa,
+        None => Aaa("".to_owned())
+    };
+
+    let res = Ok(Response::with(
+        format!("Reload this page to add an a: {}\n\n \
+                 Clear cookies to reset.", &value.0)
+    ));
+
+    value.0.push('a');
+    req.session().set(value);
+    res
 }
 
 fn main() {

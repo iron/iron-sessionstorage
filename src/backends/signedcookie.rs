@@ -5,7 +5,7 @@ use cookie;
 use iron;
 use iron::prelude::*;
 
-use Session;
+use RawSession;
 use SessionBackend;
 
 enum CookieOrString {
@@ -16,11 +16,11 @@ enum CookieOrString {
 pub struct SignedCookieSession {
     values: HashMap<String, CookieOrString>,
     signing_key: Arc<Vec<u8>>,
-    cookie_modifier: Option<Arc<Box<Fn(&mut cookie::Cookie) + Send + Sync>>>
+    cookie_modifier: Option<Arc<Box<Fn(cookie::Cookie) -> cookie::Cookie + Send + Sync>>>
 }
 
-impl Session for SignedCookieSession {
-    fn get(&self, key: &str) -> Option<&str> {
+impl RawSession for SignedCookieSession {
+    fn get_raw(&self, key: &str) -> Option<&str> {
         match self.values.get(key) {
             Some(&CookieOrString::Cookie(ref x)) => Some(&x.value),
             Some(&CookieOrString::String(ref x)) => Some(x),
@@ -28,14 +28,14 @@ impl Session for SignedCookieSession {
         }
     }
 
-    fn set(&mut self, key: &str, value: String) {
+    fn set_raw(&mut self, key: &str, value: String) {
         self.values.insert(
             key.to_owned(),
             CookieOrString::String(value)
         );
     }
 
-    fn write_cookies(&self, res: &mut Response) {
+    fn write(&self, res: &mut Response) {
         debug_assert!(!res.headers.has::<iron::headers::SetCookie>());
 
         let cookiejar = cookie::CookieJar::new(&self.signing_key);
@@ -50,7 +50,7 @@ impl Session for SignedCookieSession {
                     c.httponly = true;
                     c.path = Some("/".to_owned());
                     if let Some(ref modifier) = self.cookie_modifier {
-                        modifier(&mut c);
+                        c = modifier(c);
                     }
                     c
                 }
@@ -63,7 +63,7 @@ impl Session for SignedCookieSession {
 #[derive(Clone)]
 pub struct SignedCookieBackend {
     signing_key: Arc<Vec<u8>>,
-    cookie_modifier: Option<Arc<Box<Fn(&mut cookie::Cookie) + Send + Sync + 'static>>>
+    cookie_modifier: Option<Arc<Box<Fn(cookie::Cookie) -> cookie::Cookie + Send + Sync + 'static>>>
 }
 
 impl SignedCookieBackend {
@@ -74,7 +74,7 @@ impl SignedCookieBackend {
         }
     }
 
-    pub fn set_cookie_modifier<F: Fn(&mut cookie::Cookie) + Send + Sync + 'static>(&mut self, f: F) {
+    pub fn set_cookie_modifier<F: Fn(cookie::Cookie) -> cookie::Cookie + Send + Sync + 'static>(&mut self, f: F) {
         self.cookie_modifier = Some(Arc::new(Box::new(f)));
     }
 }
