@@ -89,7 +89,7 @@ impl<B: SessionBackend> AroundMiddleware for SessionStorage<B> {
 }
 
 /// The helper trait to obtain your session data from a request.
-pub trait SessonRequestExt {
+pub trait SessionRequestExt {
     fn session(&mut self) -> &mut Session;
 }
 
