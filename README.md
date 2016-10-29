@@ -1,4 +1,8 @@
-# iron-sessionstorage
+# iron-sessionstorage [![Build Status](https://travis-ci.org/untitaker/iron-sessionstorage.svg?branch=master)](https://travis-ci.org/untitaker/iron-sessionstorage)
+
+- [Documentation](https://docs.rs/iron-sessionstorage)
+- [Repository](https://github.com/untitaker/iron-sessionstorage)
+- [Crates.io](https://crates.io/crate/iron-sessionstorage)
 
 Flask-inspired session middleware with multiple possible backends.
 
