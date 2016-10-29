@@ -16,6 +16,7 @@ enum CookieOrString {
 pub struct SignedCookieSession {
     values: HashMap<String, CookieOrString>,
     signing_key: Arc<Vec<u8>>,
+    cookie_modifier: Option<Arc<Box<Fn(&mut cookie::Cookie) + Send + Sync>>>
 }
 
 impl Session for SignedCookieSession {
@@ -48,6 +49,9 @@ impl Session for SignedCookieSession {
                     );
                     c.httponly = true;
                     c.path = Some("/".to_owned());
+                    if let Some(ref modifier) = self.cookie_modifier {
+                        modifier(&mut c);
+                    }
                     c
                 }
             });
@@ -56,16 +60,22 @@ impl Session for SignedCookieSession {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct SignedCookieBackend {
     signing_key: Arc<Vec<u8>>,
+    cookie_modifier: Option<Arc<Box<Fn(&mut cookie::Cookie) + Send + Sync + 'static>>>
 }
 
 impl SignedCookieBackend {
     pub fn new(signing_key: Vec<u8>) -> Self {
         SignedCookieBackend {
-            signing_key: Arc::new(signing_key)
+            signing_key: Arc::new(signing_key),
+            cookie_modifier: None,
         }
+    }
+
+    pub fn set_cookie_modifier<F: Fn(&mut cookie::Cookie) + Send + Sync + 'static>(&mut self, f: F) {
+        self.cookie_modifier = Some(Arc::new(Box::new(f)));
     }
 }
 
@@ -83,6 +93,7 @@ impl SessionBackend for SignedCookieBackend {
                 .map(|c| (c.name.clone(), CookieOrString::Cookie(c)))
                 .collect(),
             signing_key: self.signing_key.clone(),
+            cookie_modifier: self.cookie_modifier.clone(),
         }
     }
 
