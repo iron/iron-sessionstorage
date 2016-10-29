@@ -3,7 +3,8 @@ extern crate iron_sessionstorage;
 
 use iron::prelude::*;
 
-use iron_sessionstorage::{RequestExt,SessionStorage,SignedCookieBackend};
+use iron_sessionstorage::{RequestExt,SessionStorage};
+use iron_sessionstorage::backends::SignedCookieBackend;
 
 fn handler(req: &mut Request) -> IronResult<Response> {
     let value = req.session().get("foo").unwrap_or("").to_owned();
