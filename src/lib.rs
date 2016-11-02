@@ -1,11 +1,17 @@
 extern crate cookie;
+#[macro_use] extern crate error_chain;
 extern crate iron;
+extern crate rand;
+#[cfg(feature = "redis-backend")] extern crate redis;
+#[cfg(feature = "redis-backend")] extern crate r2d2;
+#[cfg(feature = "redis-backend")] extern crate r2d2_redis;
 
 use iron::prelude::*;
 use iron::middleware::{AroundMiddleware,Handler};
 use iron::typemap;
 
 pub mod backends;
+pub mod errors;
 
 /// A simple key-value storage interface that is internally used by `Session`. After request
 /// handling the `write` method is called where the session backend has the chance to e.g. set
