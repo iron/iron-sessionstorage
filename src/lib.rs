@@ -17,7 +17,7 @@ pub mod errors;
 /// handling the `write` method is called where the session backend has the chance to e.g. set
 /// cookies or otherwise modify the response.
 pub trait RawSession {
-    fn get_raw(&self, key: &str) -> IronResult<Option<&str>>;
+    fn get_raw(&self, key: &str) -> IronResult<Option<String>>;
     fn set_raw(&mut self, key: &str, value: String) -> IronResult<()>;
     fn clear(&mut self) -> IronResult<()>;
     fn write(&self, response: &mut Response) -> IronResult<()>;
@@ -59,7 +59,7 @@ pub struct Session {
 pub trait Value: Sized + 'static {
     fn get_key() -> &'static str;
     fn into_raw(self) -> String;
-    fn from_raw(value: &str) -> Option<Self>;
+    fn from_raw(value: String) -> Option<Self>;
 }
 
 impl Session {

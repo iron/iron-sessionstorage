@@ -25,7 +25,7 @@ pub struct RedisSession {
 }
 
 impl RawSession for RedisSession {
-    fn get_raw(&self, key: &str) -> IronResult<Option<&str>> {
+    fn get_raw(&self, key: &str) -> IronResult<Option<String>> {
         let conn = itry!(self.pool.get());
 
         Ok(itry!(conn.hget(self.session_id, key)))

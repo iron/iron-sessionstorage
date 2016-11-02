@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use std::collections::HashMap;
 
 use cookie;
 use iron;
@@ -8,63 +7,45 @@ use iron::prelude::*;
 use RawSession;
 use SessionBackend;
 
-enum CookieOrString {
-    Cookie(cookie::Cookie),
-    String(String)
-}
-
 pub struct SignedCookieSession {
-    values: HashMap<String, CookieOrString>,
-    signing_key: Arc<Vec<u8>>,
+    unsigned_jar: cookie::CookieJar<'static>,
     cookie_modifier: Option<Arc<Box<Fn(cookie::Cookie) -> cookie::Cookie + Send + Sync>>>
 }
 
+impl SignedCookieSession {
+    fn jar<'a>(&'a self) -> cookie::CookieJar<'a> {
+        self.unsigned_jar.signed()
+    }
+}
+
 impl RawSession for SignedCookieSession {
-    fn get_raw(&self, key: &str) -> IronResult<Option<&str>> {
-        Ok(match self.values.get(key) {
-            Some(&CookieOrString::Cookie(ref x)) => Some(&x.value),
-            Some(&CookieOrString::String(ref x)) => Some(x),
-            None => None
-        })
+    fn get_raw(&self, key: &str) -> IronResult<Option<String>> {
+        Ok(self.jar().find(key).map(|c| c.value))
     }
 
     fn set_raw(&mut self, key: &str, value: String) -> IronResult<()> {
-        self.values.insert(
-            key.to_owned(),
-            CookieOrString::String(value)
-        );
+        let mut c = cookie::Cookie::new(key.to_owned(), value.to_owned());
+        c.httponly = true;
+        c.path = Some("/".to_owned());
+        if let Some(ref modifier) = self.cookie_modifier {
+            c = modifier(c);
+        }
+        self.jar().add(c);
         Ok(())
     }
 
     fn clear(&mut self) -> IronResult<()> {
-        for mut value in self.values.values_mut() {
-            *value = CookieOrString::String("".to_owned());
+        // FIXME: Replace with jar.clear() once we are at cookie==0.3
+        let names: Vec<String> = self.jar().iter().map(|c| c.name).collect();
+        for name in names {
+            self.jar().remove(&name);
         }
         Ok(())
     }
 
     fn write(&self, res: &mut Response) -> IronResult<()> {
         debug_assert!(!res.headers.has::<iron::headers::SetCookie>());
-
-        let cookiejar = cookie::CookieJar::new(&self.signing_key);
-        for (key, value) in self.values.iter() {
-            cookiejar.signed().add(match value {
-                &CookieOrString::Cookie(ref x) => x.clone(),
-                &CookieOrString::String(ref x) => {
-                    let mut c = cookie::Cookie::new(
-                        key.to_owned(),
-                        x.to_owned()
-                    );
-                    c.httponly = true;
-                    c.path = Some("/".to_owned());
-                    if let Some(ref modifier) = self.cookie_modifier {
-                        c = modifier(c);
-                    }
-                    c
-                }
-            });
-        }
-        res.headers.set(iron::headers::SetCookie(cookiejar.delta()));
+        res.headers.set(iron::headers::SetCookie(self.jar().delta()));
         Ok(())
     }
 }
@@ -106,10 +87,7 @@ impl SessionBackend for SignedCookieBackend {
         };
 
         SignedCookieSession {
-            values: jar.signed().iter()
-                .map(|c| (c.name.clone(), CookieOrString::Cookie(c)))
-                .collect(),
-            signing_key: self.signing_key.clone(),
+            unsigned_jar: jar,
             cookie_modifier: self.cookie_modifier.clone(),
         }
     }
