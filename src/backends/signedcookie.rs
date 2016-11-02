@@ -13,14 +13,6 @@ enum CookieOrString {
     String(String)
 }
 
-/// Use signed cookies as session storage. See
-/// http://lucumr.pocoo.org/2013/11/17/my-favorite-database/ for an introduction to this concept.
-///
-/// You need to pass a random value to the constructor of `SignedCookieBackend`. When this value is
-/// changed, all session data is lost. Never publish this value, everybody who has it can forge
-/// sessions.
-///
-/// Note that whatever you write into your session is visible by the user (but not modifiable).
 pub struct SignedCookieSession {
     values: HashMap<String, CookieOrString>,
     signing_key: Arc<Vec<u8>>,
@@ -68,6 +60,15 @@ impl RawSession for SignedCookieSession {
     }
 }
 
+
+/// Use signed cookies as session storage. See
+/// http://lucumr.pocoo.org/2013/11/17/my-favorite-database/ for an introduction to this concept.
+///
+/// You need to pass a random value to the constructor of `SignedCookieBackend`. When this value is
+/// changed, all session data is lost. Never publish this value, everybody who has it can forge
+/// sessions.
+///
+/// Note that whatever you write into your session is visible by the user (but not modifiable).
 #[derive(Clone)]
 pub struct SignedCookieBackend {
     signing_key: Arc<Vec<u8>>,
