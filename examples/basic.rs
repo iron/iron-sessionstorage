@@ -12,9 +12,9 @@ struct Aaa(String);
 impl iron_sessionstorage::Value for Aaa {
     fn get_key() -> &'static str { "foo" }
     fn into_raw(self) -> String { self.0 }
-    fn from_raw(value: &str) -> Option<Self> {
+    fn from_raw(value: String) -> Option<Self> {
         // Maybe validate that only 'a's are in the string
-        Some(Aaa(value.to_owned()))
+        Some(Aaa(value))
     }
 }
 
