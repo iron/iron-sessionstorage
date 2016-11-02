@@ -19,6 +19,7 @@ pub mod errors;
 pub trait RawSession {
     fn get_raw(&self, key: &str) -> Option<&str>;
     fn set_raw(&mut self, key: &str, value: String);
+    fn clear(&mut self);
     fn write(&self, response: &mut Response);
 }
 
@@ -70,6 +71,11 @@ impl Session {
     /// Set a `Value` in the session.
     pub fn set<T: Value>(&mut self, t: T) {
         self.inner.set_raw(T::get_key(), t.into_raw());
+    }
+
+    /// Clear/delete the session
+    pub fn clear(&mut self) {
+        self.inner.clear()
     }
 }
 

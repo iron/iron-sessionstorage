@@ -35,6 +35,12 @@ impl RawSession for SignedCookieSession {
         );
     }
 
+    fn clear(&mut self) {
+        for mut value in self.values.values_mut() {
+            *value = CookieOrString::String("".to_owned());
+        }
+    }
+
     fn write(&self, res: &mut Response) {
         debug_assert!(!res.headers.has::<iron::headers::SetCookie>());
 

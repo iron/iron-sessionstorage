@@ -32,6 +32,10 @@ impl RawSession for RedisSession {
         unimplemented!();
     }
 
+    fn clear(&mut self) {
+        unimplemented!();
+    }
+
     fn write(&self, res: &mut Response) {
         let session_id = self.session_id.clone().unwrap_or_else(|| {
             let mut rng = rand::OsRng::new().unwrap();
