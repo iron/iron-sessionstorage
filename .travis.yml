@@ -1,1 +1,10 @@
 language: rust
+rust:
+    - stable
+    - nightly
+
+script:
+    - cargo build
+    - cargo test
+    - cargo build --features=redis-backend
+    - cargo test --features=redis-backend
