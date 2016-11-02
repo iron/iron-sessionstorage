@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::iter::FromIterator;
 
 use redis;
@@ -27,17 +26,18 @@ pub struct RedisSession {
 impl RawSession for RedisSession {
     fn get_raw(&self, key: &str) -> IronResult<Option<String>> {
         let conn = itry!(self.pool.get());
-
-        Ok(itry!(conn.hget(self.session_id, key)))
+        Ok(itry!(conn.hget(&self.session_id, key)))
     }
 
     fn set_raw(&mut self, key: &str, value: String) -> IronResult<()> {
-        itry!(self.pool.get().unwrap().hset(self.session_id, key, value));
+        let conn = itry!(self.pool.get());
+        itry!(conn.hset(&self.session_id, key, value));
         Ok(())
     }
 
     fn clear(&mut self) -> IronResult<()> {
-        itry!(self.pool.get().unwrap().del(self.session_id).unwrap());
+        let conn = itry!(self.pool.get());
+        itry!(conn.del(&self.session_id));
         self.session_id = "".to_owned();
         Ok(())
     }
@@ -45,12 +45,12 @@ impl RawSession for RedisSession {
     fn write(&self, res: &mut Response) -> IronResult<()> {
         let cookie = iron::headers::CookiePair::new(
             COOKIE_NAME.to_owned(),
-            self.session_id
+            self.session_id.clone()
         );
         if let Some(mut cookies) = res.headers.get_mut::<iron::headers::SetCookie>() {
             debug_assert!(cookies.iter().all(|cookie| cookie.name != COOKIE_NAME));
             cookies.push(cookie);
-            return;
+            return Ok(());
         }
         res.headers.set(iron::headers::SetCookie(vec![cookie]));
         Ok(())
