@@ -47,7 +47,6 @@ impl RawSession for RedisSession {
     }
 }
 
-#[derive(Clone)]
 pub struct RedisBackend {
     pool: RedisPool
 }

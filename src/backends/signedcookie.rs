@@ -69,7 +69,6 @@ impl RawSession for SignedCookieSession {
 /// sessions.
 ///
 /// Note that whatever you write into your session is visible by the user (but not modifiable).
-#[derive(Clone)]
 pub struct SignedCookieBackend {
     signing_key: Arc<Vec<u8>>,
     cookie_modifier: Option<Arc<Box<Fn(cookie::Cookie) -> cookie::Cookie + Send + Sync + 'static>>>

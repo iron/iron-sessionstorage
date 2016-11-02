@@ -22,7 +22,7 @@ pub trait RawSession {
     fn write(&self, response: &mut Response);
 }
 
-pub trait SessionBackend: Send + Sync + Clone + 'static {
+pub trait SessionBackend: Send + Sync + 'static {
     type S: RawSession;
 
     /// Parse the session before request handling and return the data in parsed form.
