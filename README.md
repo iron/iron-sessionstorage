@@ -4,14 +4,19 @@
 - [Repository](https://github.com/untitaker/iron-sessionstorage)
 - [Crates.io](https://crates.io/crates/iron-sessionstorage)
 
-Flask-inspired session middleware with multiple possible backends.
-
-Like in Flask, a signed cookie backend is implemented by default. The
-implementation is very similar to [oven](https://github.com/flosse/oven), with
-the exception that you could write a new session backend that uses serverside
-session storage instead of signed cookies.
+Session middleware for Iron, allows you to store data in a simple
+type-to-string map for each user.
 
 See examples for usage.
+
+## Backends
+
+You can use one of the included backends for data storage or roll your own:
+
+- A cookie-based backend is available by default. You will need to provide a
+  key with which values will be signed.
+
+- A redis backend is work in progress.
 
 ## License
 
