@@ -16,7 +16,7 @@ You can use one of the included backends for data storage or roll your own:
 - A cookie-based backend is available by default. You will need to provide a
   key with which values will be signed.
 
-- A redis backend is work in progress.
+- A redis backend can be enabled using the `redis-backend` feature.
 
 ## License
 

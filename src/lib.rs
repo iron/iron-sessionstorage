@@ -1,6 +1,6 @@
 extern crate cookie;
 #[macro_use] extern crate error_chain;
-extern crate iron;
+#[macro_use] extern crate iron;
 extern crate rand;
 #[cfg(feature = "redis-backend")] extern crate redis;
 #[cfg(feature = "redis-backend")] extern crate r2d2;
@@ -17,10 +17,10 @@ pub mod errors;
 /// handling the `write` method is called where the session backend has the chance to e.g. set
 /// cookies or otherwise modify the response.
 pub trait RawSession {
-    fn get_raw(&self, key: &str) -> Option<&str>;
-    fn set_raw(&mut self, key: &str, value: String);
-    fn clear(&mut self);
-    fn write(&self, response: &mut Response);
+    fn get_raw(&self, key: &str) -> IronResult<Option<&str>>;
+    fn set_raw(&mut self, key: &str, value: String) -> IronResult<()>;
+    fn clear(&mut self) -> IronResult<()>;
+    fn write(&self, response: &mut Response) -> IronResult<()>;
 }
 
 pub trait SessionBackend: Send + Sync + 'static {
@@ -64,17 +64,17 @@ pub trait Value: Sized + 'static {
 
 impl Session {
     /// Get a `Value` from the session.
-    pub fn get<T: Value + Sized + 'static>(&self) -> Option<T> {
-        self.inner.get_raw(T::get_key()).and_then(T::from_raw)
+    pub fn get<T: Value + Sized + 'static>(&self) -> IronResult<Option<T>> {
+        Ok(try!(self.inner.get_raw(T::get_key())).and_then(T::from_raw))
     }
 
     /// Set a `Value` in the session.
-    pub fn set<T: Value>(&mut self, t: T) {
-        self.inner.set_raw(T::get_key(), t.into_raw());
+    pub fn set<T: Value>(&mut self, t: T) -> IronResult<()> {
+        self.inner.set_raw(T::get_key(), t.into_raw())
     }
 
     /// Clear/delete the session
-    pub fn clear(&mut self) {
+    pub fn clear(&mut self) -> IronResult<()> {
         self.inner.clear()
     }
 }
@@ -92,8 +92,8 @@ impl<B: SessionBackend> AroundMiddleware for SessionStorage<B> {
             let mut res = handler.handle(req);
             let s = req.extensions.remove::<SessionKey>().unwrap();
             match res {
-                Ok(ref mut x) => s.inner.write(x),
-                Err(ref mut e) => s.inner.write(&mut e.response)
+                Ok(ref mut x) => try!(s.inner.write(x)),
+                Err(ref mut e) => try!(s.inner.write(&mut e.response))
             };
             res
         })

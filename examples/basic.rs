@@ -1,4 +1,4 @@
-extern crate iron;
+#[macro_use] extern crate iron;
 extern crate iron_sessionstorage;
 
 use iron::prelude::*;
@@ -19,7 +19,7 @@ impl iron_sessionstorage::Value for Aaa {
 }
 
 fn handler(req: &mut Request) -> IronResult<Response> {
-    let mut value = match req.session().get::<Aaa>() {
+    let mut value = match try!(req.session().get::<Aaa>()) {
         Some(aaa) => aaa,
         None => Aaa("".to_owned())
     };
@@ -30,7 +30,7 @@ fn handler(req: &mut Request) -> IronResult<Response> {
     ));
 
     value.0.push('a');
-    req.session().set(value);
+    try!(req.session().set(value));
     res
 }
 

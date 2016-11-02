@@ -20,28 +20,30 @@ pub struct SignedCookieSession {
 }
 
 impl RawSession for SignedCookieSession {
-    fn get_raw(&self, key: &str) -> Option<&str> {
-        match self.values.get(key) {
+    fn get_raw(&self, key: &str) -> IronResult<Option<&str>> {
+        Ok(match self.values.get(key) {
             Some(&CookieOrString::Cookie(ref x)) => Some(&x.value),
             Some(&CookieOrString::String(ref x)) => Some(x),
             None => None
-        }
+        })
     }
 
-    fn set_raw(&mut self, key: &str, value: String) {
+    fn set_raw(&mut self, key: &str, value: String) -> IronResult<()> {
         self.values.insert(
             key.to_owned(),
             CookieOrString::String(value)
         );
+        Ok(())
     }
 
-    fn clear(&mut self) {
+    fn clear(&mut self) -> IronResult<()> {
         for mut value in self.values.values_mut() {
             *value = CookieOrString::String("".to_owned());
         }
+        Ok(())
     }
 
-    fn write(&self, res: &mut Response) {
+    fn write(&self, res: &mut Response) -> IronResult<()> {
         debug_assert!(!res.headers.has::<iron::headers::SetCookie>());
 
         let cookiejar = cookie::CookieJar::new(&self.signing_key);
@@ -63,6 +65,7 @@ impl RawSession for SignedCookieSession {
             });
         }
         res.headers.set(iron::headers::SetCookie(cookiejar.delta()));
+        Ok(())
     }
 }
 
