@@ -8,8 +8,8 @@ keywords = ["iron", "sessions", "cookie", "user", "login"]
 readme = "README.md"
 
 description = "Session middleware for Iron."
-repository = "https://github.com/untitaker/iron-sessionstorage"
-homepage = "https://github.com/untitaker/iron-sessionstorage"
+repository = "https://github.com/iron/iron-sessionstorage"
+homepage = "https://github.com/iron/iron-sessionstorage"
 
 [dependencies]
 iron = "0.4"

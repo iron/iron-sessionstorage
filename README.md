@@ -1,7 +1,7 @@
-# iron-sessionstorage [![Build Status](https://travis-ci.org/untitaker/iron-sessionstorage.svg?branch=master)](https://travis-ci.org/untitaker/iron-sessionstorage)
+# iron-sessionstorage [![Build Status](https://travis-ci.org/iron/iron-sessionstorage.svg?branch=master)](https://travis-ci.org/iron/iron-sessionstorage)
 
 - [Documentation](https://docs.rs/iron-sessionstorage)
-- [Repository](https://github.com/untitaker/iron-sessionstorage)
+- [Repository](https://github.com/iron/iron-sessionstorage)
 - [Crates.io](https://crates.io/crates/iron-sessionstorage)
 
 Session middleware for Iron, allows you to store data in a simple
