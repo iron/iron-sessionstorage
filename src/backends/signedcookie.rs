@@ -7,6 +7,28 @@ use iron::prelude::*;
 use RawSession;
 use SessionBackend;
 
+
+// Version conflict between Hyper's cookie crate (0.2) and our one (0.4). We need version 0.4
+// because of https://github.com/alexcrichton/cookie-rs/pull/63
+//
+// Don't judge!
+
+macro_rules! convert_cookie {
+    ($new_type:path, $c:expr) => {{
+        $new_type {
+            name: $c.name,
+            value: $c.value,
+            expires: $c.expires,
+            max_age: $c.max_age,
+            domain: $c.domain,
+            path: $c.path,
+            secure: $c.secure,
+            httponly: $c.httponly,
+            custom: $c.custom
+        }
+    }}
+}
+
 pub struct SignedCookieSession {
     unsigned_jar: cookie::CookieJar<'static>,
     cookie_modifier: Option<Arc<Box<Fn(cookie::Cookie) -> cookie::Cookie + Send + Sync>>>
@@ -45,7 +67,9 @@ impl RawSession for SignedCookieSession {
 
     fn write(&self, res: &mut Response) -> IronResult<()> {
         debug_assert!(!res.headers.has::<iron::headers::SetCookie>());
-        res.headers.set(iron::headers::SetCookie(self.jar().delta()));
+        res.headers.set(iron::headers::SetCookie({
+            self.jar().delta().into_iter().map(|c| convert_cookie!(iron::headers::CookiePair, c)).collect()
+        }));
         Ok(())
     }
 }
@@ -81,9 +105,11 @@ impl SessionBackend for SignedCookieBackend {
     type S = SignedCookieSession;
 
     fn from_request(&self, req: &mut Request) -> Self::S {
-        let jar = match req.headers.get::<iron::headers::Cookie>() {
-            Some(cookies) => cookies.to_cookie_jar(&self.signing_key),
-            None => cookie::CookieJar::new(&self.signing_key)
+        let mut jar = cookie::CookieJar::new(&self.signing_key);
+        if let Some(cookies) = req.headers.get::<iron::headers::Cookie>() {
+            for cookie in cookies.iter() {
+                jar.add_original(convert_cookie!(cookie::Cookie, cookie.clone()));
+            }
         };
 
         SignedCookieSession {
