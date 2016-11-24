@@ -1,4 +1,4 @@
-extern crate cookie;
+extern crate cookie as _cookie;
 #[macro_use] extern crate error_chain;
 #[macro_use] extern crate iron;
 extern crate rand;
@@ -12,6 +12,11 @@ use iron::typemap;
 
 pub mod backends;
 pub mod errors;
+
+/// Re-export of the cookie crate
+pub mod cookie {
+    pub use _cookie::*;
+}
 
 /// A simple key-value storage interface that is internally used by `Session`. After request
 /// handling the `write` method is called where the session backend has the chance to e.g. set
