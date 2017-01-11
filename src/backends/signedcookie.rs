@@ -35,17 +35,19 @@ impl RawSession for SignedCookieSession {
     }
 
     fn clear(&mut self) -> IronResult<()> {
-        // FIXME: Replace with jar.clear() once we are at cookie==0.3
-        let names: Vec<String> = self.jar().iter().map(|c| c.name).collect();
-        for name in names {
-            self.jar().remove(&name);
-        }
+        self.jar().clear();
         Ok(())
     }
 
     fn write(&self, res: &mut Response) -> IronResult<()> {
         debug_assert!(!res.headers.has::<iron::headers::SetCookie>());
-        res.headers.set(iron::headers::SetCookie(self.jar().delta()));
+        res.headers.set(iron::headers::SetCookie(
+            self.jar()
+            .delta()
+            .into_iter()
+            .map(|c| format!("{}", c))
+            .collect()
+        ));
         Ok(())
     }
 }
@@ -81,9 +83,13 @@ impl SessionBackend for SignedCookieBackend {
     type S = SignedCookieSession;
 
     fn from_request(&self, req: &mut Request) -> Self::S {
-        let jar = match req.headers.get::<iron::headers::Cookie>() {
-            Some(cookies) => cookies.to_cookie_jar(&self.signing_key),
-            None => cookie::CookieJar::new(&self.signing_key)
+        let mut jar = cookie::CookieJar::new(&self.signing_key);
+        if let Some(cookies) = req.headers.get::<iron::headers::Cookie>() {
+            for cookie in cookies.iter() {
+                if let Ok(cookie) = cookie::Cookie::parse(&cookie) {
+                    jar.add_original(cookie);
+                }
+            }
         };
 
         SignedCookieSession {
