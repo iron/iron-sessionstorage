@@ -1,6 +1,6 @@
 [package]
 name = "iron-sessionstorage"
-version = "0.6.1"
+version = "0.6.2"
 
 authors = ["Markus Unterwaditzer <markus@unterwaditzer.net>"]
 license = "MIT"
@@ -13,11 +13,11 @@ homepage = "https://github.com/iron/iron-sessionstorage"
 
 [dependencies]
 iron = "0.5"
-cookie = { version = "0.4.0", features = ["secure"] }
-error-chain = "0.5"
+cookie = { version = "0.5.0", features = ["secure"] }
+error-chain = "0.7"
 rand = "0.3"
 
-redis = { version = "0.7.0", optional = true }
+redis = { version = "0.8.0", optional = true }
 r2d2_redis = { version = "0.5.0", optional = true }
 r2d2 = { version = "0.7.1", optional = true }
 
