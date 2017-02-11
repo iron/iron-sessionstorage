@@ -56,8 +56,19 @@ impl<B: SessionBackend> SessionStorage<B> {
 /// The high-level interface you use to modify session data. You obtain this object with
 /// `request.session()`.
 pub struct Session {
-    inner: Box<RawSession>
+    inner: Box<RawSession>,
+    has_changed: bool,
 }
+
+impl Session {
+    fn new(s: Box<RawSession>) -> Self {
+        Session {
+            inner: s,
+            has_changed: false
+        }
+    }
+}
+
 
 /// A typed interface to the string-to-string mapping. Each type represents a key, each instance of
 /// a type can be serialized into a value.
@@ -75,11 +86,15 @@ impl Session {
 
     /// Set a `Value` in the session.
     pub fn set<T: Value>(&mut self, t: T) -> IronResult<()> {
+        // FIXME: Equality check for less unnecessary writes
+        self.has_changed = true;
         self.inner.set_raw(T::get_key(), t.into_raw())
     }
 
     /// Clear/delete the session
     pub fn clear(&mut self) -> IronResult<()> {
+        // FIXME: Equality check for less unnecessary writes
+        self.has_changed = true;
         self.inner.clear()
     }
 }
@@ -91,14 +106,14 @@ impl<B: SessionBackend> AroundMiddleware for SessionStorage<B> {
     fn around(self, handler: Box<Handler>) -> Box<Handler> {
         Box::new(move |req: &mut Request| -> IronResult<Response> {
             let s = self.backend.from_request(req);
-            req.extensions.insert::<SessionKey>(Session {
-                inner: Box::new(s)
-            });
+            req.extensions.insert::<SessionKey>(Session::new(Box::new(s)));
             let mut res = handler.handle(req);
             let s = req.extensions.remove::<SessionKey>().unwrap();
-            match res {
-                Ok(ref mut x) => try!(s.inner.write(x)),
-                Err(ref mut e) => try!(s.inner.write(&mut e.response))
+            if s.has_changed {
+                match res {
+                    Ok(ref mut r) => try!(s.inner.write(r)),
+                    Err(ref mut e) => try!(s.inner.write(&mut e.response))
+                }
             };
             res
         })
