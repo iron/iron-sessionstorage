@@ -92,7 +92,7 @@ impl SessionBackend for RedisBackend {
             .map(|cookie| cookie.value)
             .unwrap_or_else(|| {
                 let mut rng = rand::OsRng::new().unwrap();
-                String::from_iter(rng.gen_ascii_chars())
+                String::from_iter(rng.gen_ascii_chars().take(40))
             });
 
         RedisSession {
