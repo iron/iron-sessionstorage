@@ -10,6 +10,7 @@ use rand::Rng;
 
 use RawSession;
 use SessionBackend;
+use get_default_cookie;
 
 use errors::*;
 use iron::prelude::*;
@@ -44,7 +45,7 @@ impl RawSession for RedisSession {
     }
 
     fn write(&self, res: &mut Response) -> IronResult<()> {
-        let cookie = cookie::Cookie::new(
+        let cookie = get_default_cookie(
             COOKIE_NAME.to_owned(),
             self.session_id.clone()
         );

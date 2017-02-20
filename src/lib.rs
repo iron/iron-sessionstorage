@@ -131,6 +131,13 @@ impl<'a, 'b> SessionRequestExt for Request<'a, 'b> {
     }
 }
 
+fn get_default_cookie(key: String, value: String) -> cookie::Cookie {
+    let mut rv = cookie::Cookie::new(key, value);
+    rv.httponly = true;
+    rv.path = Some("/".to_owned());
+    rv
+}
+
 /// A module with some important traits to star-import.
 pub mod traits {
     pub use super::{SessionRequestExt};

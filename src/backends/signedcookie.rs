@@ -6,6 +6,7 @@ use iron::prelude::*;
 
 use RawSession;
 use SessionBackend;
+use get_default_cookie;
 
 pub struct SignedCookieSession {
     unsigned_jar: cookie::CookieJar<'static>,
@@ -24,9 +25,7 @@ impl RawSession for SignedCookieSession {
     }
 
     fn set_raw(&mut self, key: &str, value: String) -> IronResult<()> {
-        let mut c = cookie::Cookie::new(key.to_owned(), value.to_owned());
-        c.httponly = true;
-        c.path = Some("/".to_owned());
+        let mut c = get_default_cookie(key.to_owned(), value);
         if let Some(ref modifier) = self.cookie_modifier {
             c = modifier(c);
         }
