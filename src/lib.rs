@@ -1,6 +1,6 @@
 extern crate cookie as _cookie;
 #[macro_use] extern crate error_chain;
-#[macro_use] extern crate iron;
+extern crate iron;
 extern crate rand;
 #[cfg(feature = "redis-backend")] extern crate redis;
 #[cfg(feature = "redis-backend")] extern crate r2d2;
