@@ -8,3 +8,9 @@ script:
     - cargo test
     - cargo build --features=redis-backend
     - cargo test --features=redis-backend
+
+cache:
+    directories:
+        - $HOME/.cargo
+        - target
+        - local
