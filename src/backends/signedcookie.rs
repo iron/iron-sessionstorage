@@ -34,7 +34,10 @@ impl RawSession for SignedCookieSession {
     }
 
     fn clear(&mut self) -> IronResult<()> {
-        self.jar().clear();
+        let jar = self.jar();
+        for cookie in jar.iter() {
+            jar.remove(&cookie.name);
+        }
         Ok(())
     }
 
