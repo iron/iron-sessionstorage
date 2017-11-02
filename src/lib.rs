@@ -85,6 +85,7 @@ pub trait Key {
     fn get_key() -> &'static str;
 }
 
+#[cfg(feature = "serde-values")]
 impl<T> Value for T
 where
     T: 'static + Key + serde::Serialize + serde::de::DeserializeOwned,
