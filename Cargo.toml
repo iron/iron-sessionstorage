@@ -21,8 +21,12 @@ redis = { version = "0.7.0", optional = true }
 r2d2_redis = { version = "0.5.0", optional = true }
 r2d2 = { version = "0.7.1", optional = true }
 
+serde = { version = "1.0", optional = true }
+serde_json = { version = "1.0", optional = true }
+
 [features]
 redis-backend = ["redis", "r2d2_redis", "r2d2"]
+serde-values = ["serde", "serde_json"]
 
 [dev-dependencies]
 router = "0.5.0"

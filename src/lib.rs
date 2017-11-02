@@ -6,6 +6,8 @@ extern crate rand;
 #[cfg(feature = "redis-backend")] extern crate redis;
 #[cfg(feature = "redis-backend")] extern crate r2d2;
 #[cfg(feature = "redis-backend")] extern crate r2d2_redis;
+#[cfg(feature = "serde-values")] extern crate serde;
+#[cfg(feature = "serde-values")] extern crate serde_json;
 
 use iron::prelude::*;
 use iron::middleware::{AroundMiddleware,Handler};
@@ -78,6 +80,26 @@ pub trait Value: Sized + 'static {
     fn into_raw(self) -> String;
     fn from_raw(value: String) -> Option<Self>;
 }
+
+pub trait Key {
+    fn get_key() -> &'static str;
+}
+
+impl<T> Value for T
+where
+    T: 'static + Key + serde::Serialize + serde::de::DeserializeOwned,
+{
+    fn get_key() -> &'static str {
+        Self::get_key()
+    }
+    fn into_raw(self) -> String {
+        serde_json::to_string(&self).expect("serializing self must not fail")
+    }
+    fn from_raw(value: String) -> Option<Self> {
+        serde_json::from_str(&value).ok()
+    }
+}
+
 
 impl Session {
     /// Get a `Value` from the session.
