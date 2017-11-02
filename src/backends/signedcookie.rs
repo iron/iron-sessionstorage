@@ -9,19 +9,20 @@ use SessionBackend;
 use get_default_cookie;
 
 pub struct SignedCookieSession {
-    unsigned_jar: cookie::CookieJar<'static>,
+    unsigned_jar: cookie::CookieJar,
+    signing_key: cookie::Key,
     cookie_modifier: Option<Arc<Box<Fn(cookie::Cookie) -> cookie::Cookie + Send + Sync>>>
 }
 
 impl SignedCookieSession {
-    fn jar<'a>(&'a self) -> cookie::CookieJar<'a> {
-        self.unsigned_jar.signed()
+    fn signed_jar<'a>(&'a mut self) -> cookie::SignedJar<'a> {
+        self.unsigned_jar.signed(&self.signing_key)
     }
 }
 
 impl RawSession for SignedCookieSession {
-    fn get_raw(&self, key: &str) -> IronResult<Option<String>> {
-        Ok(self.jar().find(key).map(|c| c.value))
+    fn get_raw(&mut self, key: &str) -> IronResult<Option<String>> {
+        Ok(self.signed_jar().get(key).map(|c| c.value().to_owned()))
     }
 
     fn set_raw(&mut self, key: &str, value: String) -> IronResult<()> {
@@ -29,19 +30,19 @@ impl RawSession for SignedCookieSession {
         if let Some(ref modifier) = self.cookie_modifier {
             c = modifier(c);
         }
-        self.jar().add(c);
+        self.signed_jar().add(c);
         Ok(())
     }
 
     fn clear(&mut self) -> IronResult<()> {
-        self.jar().clear();
+        self.unsigned_jar.clear();
         Ok(())
     }
 
     fn write(&self, res: &mut Response) -> IronResult<()> {
         debug_assert!(!res.headers.has::<iron::headers::SetCookie>());
         res.headers.set(iron::headers::SetCookie(
-            self.jar()
+            self.unsigned_jar
             .delta()
             .into_iter()
             .map(|c| format!("{}", c))
@@ -81,18 +82,19 @@ impl SignedCookieBackend {
 impl SessionBackend for SignedCookieBackend {
     type S = SignedCookieSession;
 
-    fn from_request(&self, req: &mut Request) -> Self::S {
-        let mut jar = cookie::CookieJar::new(&self.signing_key);
+    fn from_request<'a, 'r>(&'a self, req: &'r mut Request) -> Self::S {
+        let mut jar = cookie::CookieJar::new();
         if let Some(cookies) = req.headers.get::<iron::headers::Cookie>() {
             for cookie in cookies.iter() {
-                if let Ok(cookie) = cookie::Cookie::parse(&cookie) {
-                    jar.add_original(cookie);
+                if let Ok(cookie) = cookie::Cookie::<'r>::parse(cookie.as_str()) {
+                    jar.add_original(cookie.into_owned());
                 }
             }
         };
 
         SignedCookieSession {
             unsigned_jar: jar,
+            signing_key: cookie::Key::from_master(&self.signing_key),
             cookie_modifier: self.cookie_modifier.clone(),
         }
     }

@@ -23,7 +23,7 @@ pub mod cookie {
 /// handling the `write` method is called where the session backend has the chance to e.g. set
 /// cookies or otherwise modify the response.
 pub trait RawSession {
-    fn get_raw(&self, key: &str) -> IronResult<Option<String>>;
+    fn get_raw(&mut self, key: &str) -> IronResult<Option<String>>;
     fn set_raw(&mut self, key: &str, value: String) -> IronResult<()>;
     fn clear(&mut self) -> IronResult<()>;
     fn write(&self, response: &mut Response) -> IronResult<()>;
@@ -81,7 +81,7 @@ pub trait Value: Sized + 'static {
 
 impl Session {
     /// Get a `Value` from the session.
-    pub fn get<T: Value + Sized + 'static>(&self) -> IronResult<Option<T>> {
+    pub fn get<T: Value + Sized + 'static>(&mut self) -> IronResult<Option<T>> {
         Ok(try!(self.inner.get_raw(T::get_key())).and_then(T::from_raw))
     }
 
@@ -132,11 +132,11 @@ impl<'a, 'b> SessionRequestExt for Request<'a, 'b> {
     }
 }
 
-fn get_default_cookie(key: String, value: String) -> cookie::Cookie {
-    let mut rv = cookie::Cookie::new(key, value);
-    rv.httponly = true;
-    rv.path = Some("/".to_owned());
-    rv
+fn get_default_cookie(key: String, value: String) -> cookie::Cookie<'static> {
+    cookie::Cookie::build(key, value)
+        .http_only(true)
+        .path("/")
+        .finish()
 }
 
 /// A module with some important traits to star-import.
