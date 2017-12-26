@@ -33,52 +33,56 @@ impl RawSession for RedisSession {
 
     fn set_raw(&mut self, key: &str, value: String) -> IronResult<()> {
         let conn = itry!(self.pool.get());
-        itry!(conn.hset(&self.session_id, key, value));
+        itry!(conn.hset::<&str, &str, String, ()>(&self.session_id, key, value));
         Ok(())
     }
 
     fn clear(&mut self) -> IronResult<()> {
         let conn = itry!(self.pool.get());
-        itry!(conn.del(&self.session_id));
+        itry!(conn.del::<&str, ()>(&self.session_id));
         self.session_id = "".to_owned();
         Ok(())
     }
 
     fn write(&self, res: &mut Response) -> IronResult<()> {
-        let cookie = get_default_cookie(
-            COOKIE_NAME.to_owned(),
-            self.session_id.clone()
-        );
-        if let Some(mut cookies) = res.headers.get_mut::<iron::headers::SetCookie>() {
+        let cookie = get_default_cookie(COOKIE_NAME.to_owned(), self.session_id.clone());
+        if let Some(cookies) = res.headers.get_mut::<iron::headers::SetCookie>() {
             debug_assert!(cookies.iter().all(|cookie| cookie != COOKIE_NAME));
             cookies.push(format!("{}", cookie.pair()));
             return Ok(());
         }
-        res.headers.set(iron::headers::SetCookie(vec![format!("{}", cookie.pair())]));
+        res.headers
+            .set(iron::headers::SetCookie(vec![format!("{}", cookie.pair())]));
         Ok(())
     }
 }
 
 pub struct RedisBackend {
-    pool: RedisPool
+    pool: RedisPool,
 }
 
 impl RedisBackend {
     pub fn new<T: redis::IntoConnectionInfo>(params: T) -> Result<Self> {
-        let config = Default::default();
-        let manager = try!(RedisConnectionManager::new(params).chain_err(|| "Couldn't create redis connection manager"));
-        let pool = try!(r2d2::Pool::new(config, manager).chain_err(|| "Couldn't create redis connection pool"));
+        let manager = try!(
+            RedisConnectionManager::new(params)
+                .chain_err(|| "Couldn't create redis connection manager")
+        );
+        let pool = try!(
+            r2d2::Pool::builder()
+                .build(manager)
+                .chain_err(|| "Couldn't create redis connection pool")
+        );
 
         Ok(RedisBackend { pool: pool })
     }
 }
 
-
 impl SessionBackend for RedisBackend {
     type S = RedisSession;
 
     fn from_request(&self, req: &mut Request) -> Self::S {
-        let session_id = req.headers.get::<iron::headers::Cookie>()
+        let session_id = req.headers
+            .get::<iron::headers::Cookie>()
             .map(|cookies| {
                 // FIXME: Our cookies are unsigned. Why do I need to specify a key?
                 let mut jar = cookie::CookieJar::new(b"");
