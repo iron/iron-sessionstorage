@@ -6,28 +6,7 @@ use iron::prelude::*;
 
 use RawSession;
 use SessionBackend;
-
-
-// Version conflict between Hyper's cookie crate (0.2) and our one (0.4). We need version 0.4
-// because of https://github.com/alexcrichton/cookie-rs/pull/63
-//
-// Don't judge!
-
-macro_rules! convert_cookie {
-    ($new_type:path, $c:expr) => {{
-        $new_type {
-            name: $c.name,
-            value: $c.value,
-            expires: $c.expires,
-            max_age: $c.max_age,
-            domain: $c.domain,
-            path: $c.path,
-            secure: $c.secure,
-            httponly: $c.httponly,
-            custom: $c.custom
-        }
-    }}
-}
+use get_default_cookie;
 
 pub struct SignedCookieSession {
     unsigned_jar: cookie::CookieJar<'static>,
@@ -46,9 +25,7 @@ impl RawSession for SignedCookieSession {
     }
 
     fn set_raw(&mut self, key: &str, value: String) -> IronResult<()> {
-        let mut c = cookie::Cookie::new(key.to_owned(), value.to_owned());
-        c.httponly = true;
-        c.path = Some("/".to_owned());
+        let mut c = get_default_cookie(key.to_owned(), value);
         if let Some(ref modifier) = self.cookie_modifier {
             c = modifier(c);
         }
@@ -57,19 +34,19 @@ impl RawSession for SignedCookieSession {
     }
 
     fn clear(&mut self) -> IronResult<()> {
-        // FIXME: Replace with jar.clear() once we are at cookie==0.3
-        let names: Vec<String> = self.jar().iter().map(|c| c.name).collect();
-        for name in names {
-            self.jar().remove(&name);
-        }
+        self.jar().clear();
         Ok(())
     }
 
     fn write(&self, res: &mut Response) -> IronResult<()> {
         debug_assert!(!res.headers.has::<iron::headers::SetCookie>());
-        res.headers.set(iron::headers::SetCookie({
-            self.jar().delta().into_iter().map(|c| convert_cookie!(iron::headers::CookiePair, c)).collect()
-        }));
+        res.headers.set(iron::headers::SetCookie(
+            self.jar()
+            .delta()
+            .into_iter()
+            .map(|c| format!("{}", c))
+            .collect()
+        ));
         Ok(())
     }
 }
@@ -108,7 +85,9 @@ impl SessionBackend for SignedCookieBackend {
         let mut jar = cookie::CookieJar::new(&self.signing_key);
         if let Some(cookies) = req.headers.get::<iron::headers::Cookie>() {
             for cookie in cookies.iter() {
-                jar.add_original(convert_cookie!(cookie::Cookie, cookie.clone()));
+                if let Ok(cookie) = cookie::Cookie::parse(&cookie) {
+                    jar.add_original(cookie);
+                }
             }
         };
 

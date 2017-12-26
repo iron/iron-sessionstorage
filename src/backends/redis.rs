@@ -10,9 +10,11 @@ use rand::Rng;
 
 use RawSession;
 use SessionBackend;
+use get_default_cookie;
 
 use errors::*;
 use iron::prelude::*;
+use cookie;
 
 const COOKIE_NAME: &'static str = "iron_session_id";
 
@@ -43,16 +45,16 @@ impl RawSession for RedisSession {
     }
 
     fn write(&self, res: &mut Response) -> IronResult<()> {
-        let cookie = iron::headers::CookiePair::new(
+        let cookie = get_default_cookie(
             COOKIE_NAME.to_owned(),
             self.session_id.clone()
         );
         if let Some(mut cookies) = res.headers.get_mut::<iron::headers::SetCookie>() {
-            debug_assert!(cookies.iter().all(|cookie| cookie.name != COOKIE_NAME));
-            cookies.push(cookie);
+            debug_assert!(cookies.iter().all(|cookie| cookie != COOKIE_NAME));
+            cookies.push(format!("{}", cookie.pair()));
             return Ok(());
         }
-        res.headers.set(iron::headers::SetCookie(vec![cookie]));
+        res.headers.set(iron::headers::SetCookie(vec![format!("{}", cookie.pair())]));
         Ok(())
     }
 }
@@ -77,12 +79,21 @@ impl SessionBackend for RedisBackend {
 
     fn from_request(&self, req: &mut Request) -> Self::S {
         let session_id = req.headers.get::<iron::headers::Cookie>()
-            .map(|header| header.to_cookie_jar(b""))  // FIXME: Our cookies are unsigned. Why do I need to specify a key?
+            .map(|cookies| {
+                // FIXME: Our cookies are unsigned. Why do I need to specify a key?
+                let mut jar = cookie::CookieJar::new(b"");
+                for cookie in cookies.iter() {
+                    if let Ok(cookie) = cookie::Cookie::parse(&cookie) {
+                        jar.add_original(cookie);
+                    }
+                }
+                jar
+            })
             .and_then(|jar| jar.find(COOKIE_NAME))
             .map(|cookie| cookie.value)
             .unwrap_or_else(|| {
                 let mut rng = rand::OsRng::new().unwrap();
-                String::from_iter(rng.gen_ascii_chars())
+                String::from_iter(rng.gen_ascii_chars().take(40))
             });
 
         RedisSession {
