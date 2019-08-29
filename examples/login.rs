@@ -89,7 +89,7 @@ fn main() {
         logout: post "/logout" => logout,
     );
 
-    let my_secret = b"verysecret".to_vec();
+    let my_secret = b"verysecretkeyatleast32byteslong.".to_vec();
     let mut ch = Chain::new(router);
     ch.link_around(SessionStorage::new(SignedCookieBackend::new(my_secret)));
     let _res = Iron::new(ch).http("localhost:8080");
