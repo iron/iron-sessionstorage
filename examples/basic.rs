@@ -35,7 +35,7 @@ fn handler(req: &mut Request) -> IronResult<Response> {
 }
 
 fn main() {
-    let my_secret = b"verysecret".to_vec();
+    let my_secret = b"verysecretkeyatleast32byteslong.".to_vec();
     let mut ch = Chain::new(handler);
     ch.link_around(SessionStorage::new(SignedCookieBackend::new(my_secret)));
     let _res = Iron::new(ch).http("localhost:8080");
